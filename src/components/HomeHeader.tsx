@@ -3,6 +3,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { UserPhoto } from "./UserPhoto";
 import { TouchableOpacity } from "react-native";
 import { useAuth } from "@hooks/useAuth";
+import { api } from "@services/api";
+
 import defaultUserPhotoImg from "@assets/userPhotoDefault.png";
 
 export function HomeHeader() {
@@ -16,7 +18,10 @@ export function HomeHeader() {
       alignItems={"center"}
     >
       <UserPhoto
-        source={user.avatar ? { uri: user.avatar } : defaultUserPhotoImg}
+        source={
+          user.avatar
+           ? { uri: `${api.defaults.baseURL}/avatar/${user.avatar}` }
+           : defaultUserPhotoImg}
         alt="imagem de perfil do usuário logado"
         size={16}
         mr={4}

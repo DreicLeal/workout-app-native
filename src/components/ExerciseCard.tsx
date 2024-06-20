@@ -1,16 +1,27 @@
 import { HStack, Heading, Icon, Image, Text, VStack } from "native-base";
 import { TouchableOpacity, TouchableOpacityProps } from "react-native";
-import {Entypo} from "@expo/vector-icons"
+import { Entypo } from "@expo/vector-icons";
+import { ExerciseDTO } from "@dtos/ExerciseDTO";
+import { api } from "@services/api";
 
-type Props = TouchableOpacityProps & {};
+type Props = TouchableOpacityProps & {
+  data: ExerciseDTO;
+};
 
-export function ExerciseCard({ ...rest }: Props) {
+export function ExerciseCard({ data, ...rest }: Props) {
   return (
     <TouchableOpacity {...rest}>
-      <HStack bg={"gray.500"} p={2} pr={4} alignItems={"center"} rounded={"md"} mb={2}>
+      <HStack
+        bg={"gray.500"}
+        p={2}
+        pr={4}
+        alignItems={"center"}
+        rounded={"md"}
+        mb={2}
+      >
         <Image
           source={{
-            uri: "https://img.comunidades.net/fit/fitnessclubs/remada_m_quina_hammer.jpg",
+            uri:`${api.defaults.baseURL}/exercise/thumb/${data.thumb}`,
           }}
           alt="Representação do exercício"
           w={16}
@@ -21,17 +32,13 @@ export function ExerciseCard({ ...rest }: Props) {
         />
         <VStack flex={1}>
           <Heading fontSize={"lg"} color={"white"} fontFamily={"heading"}>
-            Remada Unilateral
+            {data.name}
           </Heading>
           <Text fontSize={"sm"} color={"gray.200"} mt={1} noOfLines={2}>
-            3x12 repetições
+            {data.series} x {data.repetitions} repetições
           </Text>
         </VStack>
-        <Icon
-        as={Entypo}
-        name="chevron-thin-right"
-        color={"gray.300"}
-        />
+        <Icon as={Entypo} name="chevron-thin-right" color={"gray.300"} />
       </HStack>
     </TouchableOpacity>
   );

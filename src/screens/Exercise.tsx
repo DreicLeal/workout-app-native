@@ -7,22 +7,91 @@ import {
   ScrollView,
   Text,
   VStack,
+  useToast,
 } from "native-base";
-import { TouchableOpacity } from "react-native";
+import { useEffect, useState } from "react";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { TouchableOpacity } from "react-native";
 import { AppNavigatorRoutesProps } from "@routes/app.routes";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
-import BodySvg from "@assets/body.svg";
-import SeriesSvg from "@assets/series.svg";
 import RepetitionsSvg from "@assets/repetitions.svg";
 import { Button } from "@components/Button";
+import SeriesSvg from "@assets/series.svg";
+import { AppError } from "@utils/AppError";
+import BodySvg from "@assets/body.svg";
+import { api } from "@services/api";
+import { ExerciseDTO } from "@dtos/ExerciseDTO";
+import { Loading } from "@components/Loading";
+
+type RouteParamsProps = {
+  exerciseId: string;
+};
 
 export function Exercise() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [sendingRegister, setSendingRegister] = useState(true);
+  const [exercise, setExercise] = useState<ExerciseDTO>({} as ExerciseDTO);
   const navigation = useNavigation<AppNavigatorRoutesProps>();
+  const toast = useToast();
+  const route = useRoute();
+
+  const { exerciseId } = route.params as RouteParamsProps;
+
   function handleGoBack() {
     navigation.goBack();
   }
+
+  async function fetchExerciseDetails() {
+    try {
+      setIsLoading(true);
+      const response = await api.get(`/exercises/${exerciseId}`);
+      setExercise(response.data);
+    } catch (error) {
+      const isAppError = error instanceof AppError;
+      const title = isAppError
+        ? error.message
+        : "Não foi possível carregar os detalhes do exercício.";
+
+      toast.show({
+        title: title,
+        placement: "top",
+        bgColor: "red.500",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleExerciseHistoryRegister() {
+    try {
+      setSendingRegister(true);
+      await api.post("/history", { exercise_id: exerciseId });
+      toast.show({
+        title: "Parabéns, exercício registrado no histórico.",
+        placement: "top",
+        bgColor: "green.700",
+      });
+      navigation.navigate("history");
+    } catch (error) {
+      const isAppError = error instanceof AppError;
+      const title = isAppError
+        ? error.message
+        : "Não foi possível registrar o exercício.";
+
+      toast.show({
+        title: title,
+        placement: "top",
+        bgColor: "red.500",
+      });
+    } finally {
+      setSendingRegister(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchExerciseDetails();
+  }, [exerciseId]);
   return (
     <VStack flex={1}>
       <VStack px={5} bg={"gray.600"} pt={12}>
@@ -35,53 +104,67 @@ export function Exercise() {
           mb={8}
           alignItems={"center"}
         >
-          <Heading color={"gray.100"} fontSize={"lg"} flexShrink={1} fontFamily={"heading"}>
-            Puxada Frontal
+          <Heading
+            color={"gray.100"}
+            fontSize={"lg"}
+            flexShrink={1}
+            fontFamily={"heading"}
+          >
+            {exercise.name}
           </Heading>
           <HStack alignItems={"center"}>
             <BodySvg />
             <Text color={"gray.200"} ml={1} textTransform={"capitalize"}>
-              Costas
+              {exercise.group}
             </Text>
           </HStack>
         </HStack>
       </VStack>
       <ScrollView>
-        <VStack p={5}>
-          <Image
-            w={"full"}
-            h={80}
-            source={{
-              uri: "https://img.comunidades.net/fit/fitnessclubs/remada_m_quina_hammer.jpg",
-            }}
-            alt="Imagem exemplo do exercício"
-            mb={3}
-            resizeMode="cover"
-            rounded={"lg"}
-          />
-          <Box bg={"gray.600"} rounded={"md"} pb={4} px={4}>
-            <HStack
-              justifyContent={"space-around"}
-              alignItems={"center"}
-              mb={6}
-              mt={5}
-            >
-              <HStack>
-                <SeriesSvg />
-                <Text color={"gray.200"} ml={2}>
-                  3 séries
-                </Text>
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <VStack p={5}>
+            <Box rounded={"lg"} mb={3} overflow={"hidden"}>
+              <Image
+                w={"full"}
+                h={80}
+                source={{
+                  uri: `${api.defaults.baseURL}/exercise/demo/${exercise.demo}`,
+                }}
+                alt="Imagem exemplo do exercício"
+                resizeMode="cover"
+                rounded={"lg"}
+              />
+            </Box>
+            <Box bg={"gray.600"} rounded={"md"} pb={4} px={4}>
+              <HStack
+                justifyContent={"space-around"}
+                alignItems={"center"}
+                mb={6}
+                mt={5}
+              >
+                <HStack>
+                  <SeriesSvg />
+                  <Text color={"gray.200"} ml={2}>
+                    {exercise.series} séries
+                  </Text>
+                </HStack>
+                <HStack>
+                  <RepetitionsSvg />
+                  <Text color={"gray.200"} ml={2}>
+                    {exercise.repetitions} repetições
+                  </Text>
+                </HStack>
               </HStack>
-              <HStack>
-                <RepetitionsSvg />
-                <Text color={"gray.200"} ml={2}>
-                  12 repetições
-                </Text>
-              </HStack>
-            </HStack>
-            <Button title="Marcar como realizado" />
-          </Box>
-        </VStack>
+              <Button
+                title="Marcar como realizado"
+                isLoading={sendingRegister}
+                onPress={handleExerciseHistoryRegister}
+              />
+            </Box>
+          </VStack>
+        )}
       </ScrollView>
     </VStack>
   );
